@@ -1,0 +1,467 @@
+<!-- FIELDWORK TAB - Observation Capture Interface -->
+<!-- Replace the existing fieldwork-content div with this -->
+
+<div id="fieldwork-content" class="hidden h-full overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 h-full gap-4 p-4">
+        <!-- Left Panel: Requirements & Observations List -->
+        <div class="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header with Stats -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+                <h2 class="font-bold text-xl mb-2">📋 Requirements Checklist</h2>
+                <div class="flex gap-4 text-sm">
+                    <div><span id="reqCountFieldwork">0</span> Requirements</div>
+                    <div><span id="obsCountFieldwork">0</span> Observations</div>
+                    <div><span id="gapCountFieldwork">0</span> Gaps</div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="p-3 border-b border-slate-200 bg-slate-50">
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <button onclick="filterFieldworkRequirements('all')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-white">All</button>
+                    <button onclick="filterFieldworkRequirements('Critical')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Critical</button>
+                    <button onclick="filterFieldworkRequirements('High')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">High</button>
+                    <button onclick="filterFieldworkRequirements('Medium')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Medium</button>
+                </div>
+                <input type="text" id="reqSearchFieldwork" placeholder="Search requirements..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" oninput="searchFieldworkRequirements()">
+            </div>
+            
+            <!-- Requirements List -->
+            <div id="fieldworkReqList" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Right Panel: Observation Capture/View -->
+        <div class="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Empty State -->
+            <div id="obsEmptyState" class="flex-1 flex items-center justify-center p-8 text-center">
+                <div>
+                    <svg class="w-24 h-24 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-slate-600 font-semibold mb-2">No observation selected</p>
+                    <p class="text-slate-500 text-sm">Click "+ Add Observation" on a requirement to begin</p>
+                </div>
+            </div>
+            
+            <!-- Observation Form -->
+            <div id="obsFormState" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4">
+                    <h2 class="font-bold text-xl">📝 New Observation</h2>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Linked Requirement Context -->
+                    <div id="linkedReqContext" class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <!-- Observation Text -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">What did you observe? *</label>
+                        <textarea id="obsText" rows="6" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Describe what you observed in detail..."></textarea>
+                        <p class="text-xs text-slate-500 mt-1">Minimum 50 characters</p>
+                    </div>
+                    
+                    <!-- Location & Metadata -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">📍 Location</label>
+                            <input type="text" id="obsLocation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="e.g., Grade A Filling Room 2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Interviewed</label>
+                            <input type="text" id="obsInterviewed" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="e.g., Sarah Chen">
+                        </div>
+                    </div>
+                    
+                    <!-- Compliance Status -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">🎯 Compliance Status *</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="obsStatus" value="compliant" class="mr-3">
+                                <span class="text-green-700 font-medium">✓ Compliant</span>
+                                <span class="text-xs text-slate-500 ml-2">- No issues found</span>
+                            </label>
+                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="obsStatus" value="gap" checked class="mr-3">
+                                <span class="text-amber-700 font-medium">⚠️ Gap Identified</span>
+                                <span class="text-xs text-slate-500 ml-2">- Minor deviation</span>
+                            </label>
+                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="obsStatus" value="non-compliant" class="mr-3">
+                                <span class="text-red-700 font-medium">✗ Non-Compliant</span>
+                                <span class="text-xs text-slate-500 ml-2">- Significant deviation</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Severity (shown for gap/non-compliant) -->
+                    <div id="obsSeveritySection">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Severity Level</label>
+                        <select id="obsSeverity" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="minor">Minor</option>
+                            <option value="major" selected>Major</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Evidence Placeholder -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-slate-700 mb-2">📎 Evidence (Optional)</h4>
+                        <p class="text-xs text-slate-500 mb-2">Photo, audio, and document upload coming soon</p>
+                        <div class="flex gap-2">
+                            <button disabled class="flex-1 px-3 py-2 bg-slate-200 text-slate-500 rounded-lg text-sm cursor-not-allowed">📸 Photo</button>
+                            <button disabled class="flex-1 px-3 py-2 bg-slate-200 text-slate-500 rounded-lg text-sm cursor-not-allowed">🎤 Audio</button>
+                            <button disabled class="flex-1 px-3 py-2 bg-slate-200 text-slate-500 rounded-lg text-sm cursor-not-allowed">📄 Document</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="p-4 border-t border-slate-200 bg-slate-50 flex gap-3">
+                    <button onclick="cancelObservation()" class="flex-1 px-4 py-3 bg-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-400">Cancel</button>
+                    <button onclick="saveObservation()" class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700">💾 Save Observation</button>
+                </div>
+            </div>
+            
+            <!-- Observation Detail View -->
+            <div id="obsDetailState" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 flex justify-between items-center">
+                    <h2 id="obsDetailTitle" class="font-bold text-xl">Observation Details</h2>
+                    <div class="flex gap-2">
+                        <button onclick="closeObservationDetail()" class="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30">Close</button>
+                    </div>
+                </div>
+                <div id="obsDetailContent" class="flex-1 overflow-y-auto p-4">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// FIELDWORK OBSERVATIONS MANAGEMENT
+// ============================================================================
+
+let currentRequirement = null;
+let fieldworkRequirements = [];
+let fieldworkObservations = [];
+let selectedObservationId = null;
+
+// Load requirements into fieldwork view
+async function loadFieldworkRequirements() {
+    if (!generatedRequirements || !generatedRequirements.categories) {
+        document.getElementById('fieldworkReqList').innerHTML = `
+            <div class="text-center py-8 text-slate-500">
+                <p class="mb-2">No requirements loaded</p>
+                <p class="text-sm">Go to "Pre-Audit Prep" and generate requirements first</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Flatten requirements from categories
+    fieldworkRequirements = [];
+    generatedRequirements.categories.forEach(cat => {
+        cat.requirements.forEach(req => {
+            fieldworkRequirements.push(req);
+        });
+    });
+    
+    displayFieldworkRequirements();
+    loadFieldworkObservations();
+    updateFieldworkStats();
+}
+
+function displayFieldworkRequirements() {
+    const container = document.getElementById('fieldworkReqList');
+    
+    if (fieldworkRequirements.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-4">No requirements found</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    fieldworkRequirements.forEach(req => {
+        // Count observations for this requirement
+        const obsCount = fieldworkObservations.filter(obs => 
+            obs.linkedRequirement && obs.linkedRequirement.id === req.id
+        ).length;
+        
+        const card = document.createElement('div');
+        card.className = 'border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer';
+        card.onclick = () => viewRequirementDetail(req);
+        
+        const riskColors = {
+            'Critical': 'bg-red-100 text-red-800',
+            'High': 'bg-orange-100 text-orange-800',
+            'Medium': 'bg-yellow-100 text-yellow-800',
+            'Low': 'bg-blue-100 text-blue-800'
+        };
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-xs font-mono text-slate-500">${req.id}</span>
+                    <span class="ml-2 px-2 py-0.5 text-xs rounded-full ${riskColors[req.risk_level] || riskColors.Medium}">
+                        ${req.risk_level}
+                    </span>
+                </div>
+                <span class="text-xs text-slate-500">${obsCount} obs</span>
+            </div>
+            <p class="text-sm text-slate-700 font-medium mb-2 line-clamp-2">${cleanRequirementText(req['requirement_text (verbatim)'] || req.requirement_text)}</p>
+            <button onclick="openObservationForm(event, ${JSON.stringify(req).replace(/"/g, '&quot;')})" class="w-full mt-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded text-xs font-semibold hover:from-purple-700 hover:to-blue-700">
+                + Add Observation
+            </button>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function openObservationForm(event, requirement) {
+    event.stopPropagation();
+    currentRequirement = requirement;
+    
+    // Show form, hide others
+    document.getElementById('obsEmptyState').classList.add('hidden');
+    document.getElementById('obsFormState').classList.remove('hidden');
+    document.getElementById('obsDetailState').classList.add('hidden');
+    
+    // Populate requirement context
+    const requirementText = requirement['requirement_text (verbatim)'] || requirement.requirement_text;
+    const citation = requirement.citation || extractCitation(requirementText);
+    
+    document.getElementById('linkedReqContext').innerHTML = `
+        <h4 class="font-bold text-sm text-purple-800 mb-2">📌 LINKED REQUIREMENT</h4>
+        <div class="text-xs text-purple-700 mb-1">${requirement.id} - ${requirement.risk_level}</div>
+        <div class="text-xs font-semibold text-purple-600 mb-2">${citation}</div>
+        <p class="text-sm text-purple-900 mb-3">${cleanRequirementText(requirementText)}</p>
+        
+        ${requirement.compliance_evidence && requirement.compliance_evidence.length > 0 ? `
+        <div class="mb-2">
+            <h5 class="text-xs font-semibold text-purple-800 mb-1">Expected Evidence:</h5>
+            <ul class="list-disc list-inside text-xs text-purple-700 space-y-0.5">
+                ${requirement.compliance_evidence.map(e => `<li>${cleanListItem(e)}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
+        
+        ${requirement.common_gaps && requirement.common_gaps.length > 0 ? `
+        <div>
+            <h5 class="text-xs font-semibold text-purple-800 mb-1">⚠️ Watch Out For:</h5>
+            <ul class="list-disc list-inside text-xs text-purple-700 space-y-0.5">
+                ${requirement.common_gaps.map(g => `<li>${cleanListItem(g)}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
+    `;
+    
+    // Clear form
+    document.getElementById('obsText').value = '';
+    document.getElementById('obsLocation').value = '';
+    document.getElementById('obsInterviewed').value = '';
+    document.querySelector('input[name="obsStatus"][value="gap"]').checked = true;
+    document.getElementById('obsSeverity').value = 'major';
+}
+
+function viewRequirementDetail(requirement) {
+    // Get observations for this requirement
+    const reqObservations = fieldworkObservations.filter(obs => 
+        obs.linkedRequirement && obs.linkedRequirement.id === requirement.id
+    );
+    
+    // Show detail view
+    document.getElementById('obsEmptyState').classList.add('hidden');
+    document.getElementById('obsFormState').classList.add('hidden');
+    document.getElementById('obsDetailState').classList.remove('hidden');
+    
+    const requirementText = requirement['requirement_text (verbatim)'] || requirement.requirement_text;
+    const citation = requirement.citation || extractCitation(requirementText);
+    
+    document.getElementById('obsDetailTitle').innerText = `Requirement: ${requirement.id}`;
+    document.getElementById('obsDetailContent').innerHTML = `
+        <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-4">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-xs font-semibold text-purple-600">${citation}</span>
+                    <span class="ml-2 px-2 py-0.5 text-xs rounded-full ${requirement.risk_level === 'Critical' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'}">${requirement.risk_level}</span>
+                </div>
+            </div>
+            <p class="text-sm text-purple-900 mb-3">${cleanRequirementText(requirementText)}</p>
+            <button onclick="openObservationForm(event, ${JSON.stringify(requirement).replace(/"/g, '&quot;')})" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-blue-700">
+                + Add Observation
+            </button>
+        </div>
+        
+        <h3 class="font-bold text-lg text-slate-700 mb-3">Observations (${reqObservations.length})</h3>
+        
+        ${reqObservations.length === 0 ? `
+            <p class="text-slate-500 text-center py-8">No observations yet for this requirement</p>
+        ` : `
+            <div class="space-y-3">
+                ${reqObservations.map(obs => createObservationCard(obs)).join('')}
+            </div>
+        `}
+    `;
+}
+
+function createObservationCard(obs) {
+    const statusColors = {
+        'compliant': 'bg-green-50 border-green-200',
+        'gap': 'bg-amber-50 border-amber-200',
+        'non-compliant': 'bg-red-50 border-red-200'
+    };
+    
+    const statusIcons = {
+        'compliant': '✓',
+        'gap': '⚠️',
+        'non-compliant': '✗'
+    };
+    
+    const statusLabels = {
+        'compliant': 'Compliant',
+        'gap': 'Gap Identified',
+        'non-compliant': 'Non-Compliant'
+    };
+    
+    return `
+        <div class="border-2 ${statusColors[obs.complianceStatus]} rounded-lg p-4">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-sm font-semibold text-slate-700">${obs.id}</span>
+                    <span class="ml-2 text-sm">${statusIcons[obs.complianceStatus]} ${statusLabels[obs.complianceStatus]}</span>
+                    ${obs.severity !== 'minor' && obs.complianceStatus !== 'compliant' ? 
+                        `<span class="ml-2 text-xs text-slate-600">(${obs.severity})</span>` : ''}
+                </div>
+                <span class="text-xs text-slate-500">${new Date(obs.metadata.timestamp).toLocaleString()}</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-3">${obs.observationText}</p>
+            ${obs.metadata.location ? `<p class="text-xs text-slate-600">📍 ${obs.metadata.location}</p>` : ''}
+            ${obs.metadata.interviewed ? `<p class="text-xs text-slate-600">👤 Interviewed: ${obs.metadata.interviewed}</p>` : ''}
+        </div>
+    `;
+}
+
+function closeObservationDetail() {
+    document.getElementById('obsDetailState').classList.add('hidden');
+    document.getElementById('obsEmptyState').classList.remove('hidden');
+}
+
+async function saveObservation() {
+    const obsText = document.getElementById('obsText').value.trim();
+    const location = document.getElementById('obsLocation').value.trim();
+    const interviewed = document.getElementById('obsInterviewed').value.trim();
+    const status = document.querySelector('input[name="obsStatus"]:checked').value;
+    const severity = document.getElementById('obsSeverity').value;
+    
+    // Validation
+    if (obsText.length < 50) {
+        alert('Observation text must be at least 50 characters');
+        return;
+    }
+    
+    // Prepare data
+    const observationData = {
+        linkedRequirement: currentRequirement,
+        observationText: obsText,
+        complianceStatus: status,
+        severity: status === 'compliant' ? 'minor' : severity,
+        category: currentRequirement.category,
+        location: location,
+        interviewed: interviewed,
+        evidence: []
+    };
+    
+    try {
+        const response = await fetch('/api/observations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(observationData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Add to local array
+            fieldworkObservations.push(result.observation);
+            
+            // Refresh display
+            displayFieldworkRequirements();
+            updateFieldworkStats();
+            
+            // Show detail view
+            viewRequirementDetail(currentRequirement);
+            
+            // Success message
+            alert('✓ Observation saved successfully!');
+        } else {
+            alert('Failed to save observation: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error saving observation: ' + error.message);
+    }
+}
+
+function cancelObservation() {
+    document.getElementById('obsFormState').classList.add('hidden');
+    document.getElementById('obsEmptyState').classList.remove('hidden');
+    currentRequirement = null;
+}
+
+async function loadFieldworkObservations() {
+    try {
+        const response = await fetch('/api/observations');
+        const result = await response.json();
+        
+        if (result.success) {
+            fieldworkObservations = result.observations;
+            updateFieldworkStats();
+        }
+    } catch (error) {
+        console.error('Error loading observations:', error);
+    }
+}
+
+function updateFieldworkStats() {
+    document.getElementById('reqCountFieldwork').innerText = fieldworkRequirements.length;
+    document.getElementById('obsCountFieldwork').innerText = fieldworkObservations.length;
+    
+    const gaps = fieldworkObservations.filter(obs => 
+        obs.complianceStatus === 'gap' || obs.complianceStatus === 'non-compliant'
+    ).length;
+    document.getElementById('gapCountFieldwork').innerText = gaps;
+}
+
+function filterFieldworkRequirements(level) {
+    // Update button styles
+    document.querySelectorAll('.filter-fieldwork-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-700', 'text-white');
+        btn.classList.add('bg-slate-200', 'text-slate-700');
+    });
+    event.target.classList.add('bg-slate-700', 'text-white');
+    event.target.classList.remove('bg-slate-200', 'text-slate-700');
+    
+    // Filter logic would go here
+    displayFieldworkRequirements();
+}
+
+function searchFieldworkRequirements() {
+    const query = document.getElementById('reqSearchFieldwork').value.toLowerCase();
+    // Search logic would go here
+    displayFieldworkRequirements();
+}
+
+// Initialize when switching to fieldwork tab
+function initializeFieldwork() {
+    loadFieldworkRequirements();
+}
+</script>
+

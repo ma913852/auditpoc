@@ -1,0 +1,693 @@
+<!-- ================================================================
+     COMPLETE AI-ENHANCED FIELDWORK INTEGRATION
+     Copy this entire content to replace the fieldwork section in audit_poc.html
+     ==================================================================== -->
+
+<!-- STEP 1: ADD THIS CSS to the <style> section (around line 12) -->
+<style>
+.recording { animation: pulse-red 1.5s ease-in-out infinite; }
+@keyframes pulse-red {
+    0%, 100% { background-color: #DC2626; }
+    50% { background-color: #EF4444; }
+}
+.ai-suggestion {
+    animation: fadeIn 0.5s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<!-- STEP 2: REPLACE the entire fieldwork-content div (around line 668) -->
+<!-- Find: <div id="fieldwork-content" class="hidden h-full"> -->
+<!-- Replace with: -->
+
+                <div id="fieldwork-content" class="hidden h-full overflow-hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 h-full gap-4 p-4">
+                        <!-- Left Panel: Requirements Checklist -->
+                        <div class="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+                                <h2 class="font-bold text-xl mb-2">📋 Requirements Checklist</h2>
+                                <div class="flex gap-4 text-sm">
+                                    <div><span id="reqCountFieldwork">0</span> Requirements</div>
+                                    <div><span id="obsCountFieldwork">0</span> Observations</div>
+                                    <div><span id="gapCountFieldwork">0</span> Gaps</div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 border-b border-slate-200 bg-slate-50">
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <button onclick="filterFieldworkRequirements('all')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-white">All</button>
+                                    <button onclick="filterFieldworkRequirements('Critical')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Critical</button>
+                                    <button onclick="filterFieldworkRequirements('High')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">High</button>
+                                    <button onclick="filterFieldworkRequirements('Medium')" class="filter-fieldwork-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Medium</button>
+                                </div>
+                                <input type="text" id="reqSearchFieldwork" placeholder="Search requirements..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" oninput="searchFieldworkRequirements()">
+                            </div>
+                            
+                            <div id="fieldworkReqList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+                        </div>
+                        
+                        <!-- Right Panel: AI-Enhanced Observation Capture -->
+                        <div class="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
+                            <!-- Empty State -->
+                            <div id="obsEmptyState" class="flex-1 flex items-center justify-center p-8 text-center">
+                                <div>
+                                    <svg class="w-24 h-24 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <p class="text-slate-600 font-semibold mb-2">No observation selected</p>
+                                    <p class="text-slate-500 text-sm">Click "+ Add Observation" to begin capturing evidence</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Observation Form with AI Analysis -->
+                            <div id="obsFormState" class="hidden flex-1 flex flex-col overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4">
+                                    <h2 class="font-bold text-xl">📝 Smart Observation Capture</h2>
+                                    <p class="text-xs text-purple-100 mt-1">AI will analyze and match to requirements</p>
+                                </div>
+                                
+                                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                                    <!-- Multi-Modal Input Section -->
+                                    <div class="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                                        <h4 class="text-sm font-bold text-purple-800 mb-3">📊 Capture Evidence (Multi-Modal)</h4>
+                                        
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">✍️ Written Observation *</label>
+                                            <textarea id="obsText" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Describe what you observed... (AI will analyze this)"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">📸 Photo Evidence (Optional)</label>
+                                            <div class="flex gap-2">
+                                                <input type="file" id="obsImageInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageCapture(event)">
+                                                <button onclick="document.getElementById('obsImageInput').click()" class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600">📸 Take Photo</button>
+                                                <button onclick="clearImage()" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-300">Clear</button>
+                                            </div>
+                                            <div id="imagePreview" class="hidden mt-2">
+                                                <img id="previewImg" class="w-full max-h-48 object-contain rounded-lg border-2 border-purple-200">
+                                                <input type="text" id="imageDescription" placeholder="Describe what's in the photo" class="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">🎤 Voice Note (Optional)</label>
+                                            <div class="flex gap-2">
+                                                <button id="recordBtn" onclick="toggleRecording()" class="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600">
+                                                    🎤 <span id="recordBtnText">Start Recording</span>
+                                                </button>
+                                                <button onclick="clearAudio()" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-300">Clear</button>
+                                            </div>
+                                            <div id="audioPreview" class="hidden mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                <span class="text-sm text-slate-700">🎤 Recording: <span id="recordDuration">0:00</span></span>
+                                            </div>
+                                            <textarea id="audioTranscription" placeholder="Audio transcription (type manually or record)" class="hidden mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" rows="2"></textarea>
+                                        </div>
+                                        
+                                        <div class="pt-3 border-t border-purple-200">
+                                            <button onclick="analyzeWithAI()" id="analyzeBtn" class="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-bold text-sm hover:from-purple-700 hover:to-blue-700">
+                                                ⚡ Analyze with AI
+                                            </button>
+                                            <p class="text-xs text-center text-slate-500 mt-2">AI will match to requirements and suggest tags</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- AI Suggestions Panel -->
+                                    <div id="aiSuggestionsPanel" class="hidden bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-4">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h4 class="text-sm font-bold text-green-800">🤖 AI Analysis Complete</h4>
+                                            <button onclick="acceptAISuggestions()" class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700">Accept All</button>
+                                        </div>
+                                        <div id="aiSuggestionsContent"></div>
+                                    </div>
+                                    
+                                    <!-- Location & Metadata -->
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">📍 Location</label>
+                                            <input type="text" id="obsLocation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="e.g., Grade A Filling Room 2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Interviewed</label>
+                                            <input type="text" id="obsInterviewed" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="e.g., Sarah Chen">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Compliance Status -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">🎯 Compliance Status <span id="aiSuggestedStatus" class="text-xs text-green-600"></span></label>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                                <input type="radio" name="obsStatus" value="compliant" class="mr-3">
+                                                <span class="text-green-700 font-medium">✓ Compliant</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                                <input type="radio" name="obsStatus" value="gap" checked class="mr-3">
+                                                <span class="text-amber-700 font-medium">⚠️ Gap Identified</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                                <input type="radio" name="obsStatus" value="non-compliant" class="mr-3">
+                                                <span class="text-red-700 font-medium">✗ Non-Compliant</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Severity -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Severity Level <span id="aiSuggestedSeverity" class="text-xs text-green-600"></span></label>
+                                        <select id="obsSeverity" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                                            <option value="minor">Minor</option>
+                                            <option value="major" selected>Major</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- AI Analysis Summary -->
+                                    <div id="aiAnalysisSection" class="hidden bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                        <h5 class="text-xs font-semibold text-purple-800 mb-2">🔍 AI Analysis</h5>
+                                        <p id="aiAnalysisText" class="text-xs text-purple-700"></p>
+                                    </div>
+                                    
+                                    <!-- AI Recommendations -->
+                                    <div id="aiRecommendationsSection" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                        <h5 class="text-xs font-semibold text-amber-800 mb-2">💡 Recommendations</h5>
+                                        <ul id="aiRecommendationsList" class="list-disc list-inside text-xs text-amber-700 space-y-1"></ul>
+                                    </div>
+                                </div>
+                                
+                                <!-- Form Actions -->
+                                <div class="p-4 border-t border-slate-200 bg-slate-50 flex gap-3">
+                                    <button onclick="cancelObservation()" class="flex-1 px-4 py-3 bg-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-400">Cancel</button>
+                                    <button onclick="saveObservation()" class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700">💾 Save Observation</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Observation Detail View -->
+                            <div id="obsDetailState" class="hidden flex-1 flex flex-col overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 flex justify-between items-center">
+                                    <h2 id="obsDetailTitle" class="font-bold text-xl">Observation Details</h2>
+                                    <button onclick="closeObservationDetail()" class="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30">Close</button>
+                                </div>
+                                <div id="obsDetailContent" class="flex-1 overflow-y-auto p-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+<!-- STEP 3: ADD THIS JAVASCRIPT to the <script> section (before the closing </script> tag) -->
+<!-- Find: // AI PROMPT FUNCTIONS or near the end of script section -->
+<!-- Add this code: -->
+
+<script>
+// ============================================================================
+// FIELDWORK OBSERVATIONS - AI-ENHANCED
+// ============================================================================
+
+let currentRequirement = null;
+let fieldworkRequirements = [];
+let fieldworkObservations = [];
+let capturedImage = null;
+let capturedAudio = null;
+let aiAnalysisResult = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingStartTime = null;
+let recordingInterval = null;
+
+// Load requirements into fieldwork
+async function loadFieldworkRequirements() {
+    if (!generatedRequirements || !generatedRequirements.categories) {
+        document.getElementById('fieldworkReqList').innerHTML = `
+            <div class="text-center py-8 text-slate-500">
+                <p class="mb-2">No requirements loaded</p>
+                <p class="text-sm">Go to "Pre-Audit Prep" and generate requirements first</p>
+            </div>
+        `;
+        return;
+    }
+    
+    fieldworkRequirements = [];
+    generatedRequirements.categories.forEach(cat => {
+        cat.requirements.forEach(req => fieldworkRequirements.push(req));
+    });
+    
+    displayFieldworkRequirements();
+    await loadFieldworkObservations();
+    updateFieldworkStats();
+}
+
+function displayFieldworkRequirements() {
+    const container = document.getElementById('fieldworkReqList');
+    
+    if (fieldworkRequirements.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-4">No requirements found</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    fieldworkRequirements.forEach(req => {
+        const obsCount = fieldworkObservations.filter(obs => 
+            obs.linkedRequirement && obs.linkedRequirement.id === req.id
+        ).length;
+        
+        const card = document.createElement('div');
+        card.className = 'border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer';
+        card.onclick = () => viewRequirementDetail(req);
+        
+        const riskColors = {
+            'Critical': 'bg-red-100 text-red-800',
+            'High': 'bg-orange-100 text-orange-800',
+            'Medium': 'bg-yellow-100 text-yellow-800',
+            'Low': 'bg-blue-100 text-blue-800'
+        };
+        
+        const requirementText = req['requirement_text (verbatim)'] || req.requirement_text || '';
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-xs font-mono text-slate-500">${req.id}</span>
+                    <span class="ml-2 px-2 py-0.5 text-xs rounded-full ${riskColors[req.risk_level] || riskColors.Medium}">
+                        ${req.risk_level}
+                    </span>
+                </div>
+                <span class="text-xs text-slate-500">${obsCount} obs</span>
+            </div>
+            <p class="text-sm text-slate-700 font-medium mb-2 line-clamp-2">${cleanRequirementText(requirementText)}</p>
+            <button onclick="openObservationForm(event, ${JSON.stringify(req).replace(/"/g, '&quot;')})" class="w-full mt-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded text-xs font-semibold hover:from-purple-700 hover:to-blue-700">
+                + Add Observation
+            </button>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function openObservationForm(event, requirement) {
+    if (event) event.stopPropagation();
+    currentRequirement = requirement;
+    
+    document.getElementById('obsEmptyState').classList.add('hidden');
+    document.getElementById('obsFormState').classList.remove('hidden');
+    document.getElementById('obsDetailState').classList.add('hidden');
+    
+    // Clear form
+    document.getElementById('obsText').value = '';
+    document.getElementById('obsLocation').value = '';
+    document.getElementById('obsInterviewed').value = '';
+    clearImage();
+    clearAudio();
+    resetAIAnalysis();
+}
+
+function viewRequirementDetail(requirement) {
+    const reqObservations = fieldworkObservations.filter(obs => 
+        obs.linkedRequirement && obs.linkedRequirement.id === requirement.id
+    );
+    
+    document.getElementById('obsEmptyState').classList.add('hidden');
+    document.getElementById('obsFormState').classList.add('hidden');
+    document.getElementById('obsDetailState').classList.remove('hidden');
+    
+    const requirementText = requirement['requirement_text (verbatim)'] || requirement.requirement_text;
+    const citation = requirement.citation || extractCitation(requirementText);
+    
+    document.getElementById('obsDetailTitle').innerText = `Requirement: ${requirement.id}`;
+    document.getElementById('obsDetailContent').innerHTML = `
+        <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-4">
+            <div class="text-xs font-semibold text-purple-600 mb-2">${citation}</div>
+            <p class="text-sm text-purple-900 mb-3">${cleanRequirementText(requirementText)}</p>
+            <button onclick="openObservationForm(event, ${JSON.stringify(requirement).replace(/"/g, '&quot;')})" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold">
+                + Add Observation
+            </button>
+        </div>
+        
+        <h3 class="font-bold text-lg text-slate-700 mb-3">Observations (${reqObservations.length})</h3>
+        
+        ${reqObservations.length === 0 ? `
+            <p class="text-slate-500 text-center py-8">No observations yet for this requirement</p>
+        ` : `
+            <div class="space-y-3">
+                ${reqObservations.map(obs => createObservationCard(obs)).join('')}
+            </div>
+        `}
+    `;
+}
+
+function createObservationCard(obs) {
+    const statusColors = {
+        'compliant': 'bg-green-50 border-green-200',
+        'gap': 'bg-amber-50 border-amber-200',
+        'non-compliant': 'bg-red-50 border-red-200'
+    };
+    
+    const statusLabels = {
+        'compliant': '✓ Compliant',
+        'gap': '⚠️ Gap',
+        'non-compliant': '✗ Non-Compliant'
+    };
+    
+    return `
+        <div class="border-2 ${statusColors[obs.complianceStatus]} rounded-lg p-4">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-sm font-semibold">${obs.id}</span>
+                    <span class="ml-2 text-sm">${statusLabels[obs.complianceStatus]}</span>
+                    ${obs.severity !== 'minor' ? `<span class="ml-2 text-xs text-slate-600">(${obs.severity})</span>` : ''}
+                </div>
+                <span class="text-xs text-slate-500">${new Date(obs.metadata.timestamp).toLocaleString()}</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">${obs.observationText}</p>
+            ${obs.metadata.location ? `<p class="text-xs text-slate-600">📍 ${obs.metadata.location}</p>` : ''}
+            ${obs.metadata.interviewed ? `<p class="text-xs text-slate-600">👤 ${obs.metadata.interviewed}</p>` : ''}
+        </div>
+    `;
+}
+
+function closeObservationDetail() {
+    document.getElementById('obsDetailState').classList.add('hidden');
+    document.getElementById('obsEmptyState').classList.remove('hidden');
+}
+
+// Image handling
+function handleImageCapture(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        capturedImage = e.target.result;
+        document.getElementById('previewImg').src = capturedImage;
+        document.getElementById('imagePreview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearImage() {
+    capturedImage = null;
+    document.getElementById('obsImageInput').value = '';
+    document.getElementById('imagePreview').classList.add('hidden');
+    document.getElementById('imageDescription').value = '';
+}
+
+// Audio recording
+async function toggleRecording() {
+    const btn = document.getElementById('recordBtn');
+    const btnText = document.getElementById('recordBtnText');
+    
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                capturedAudio = URL.createObjectURL(audioBlob);
+                document.getElementById('audioPreview').classList.remove('hidden');
+                document.getElementById('audioTranscription').classList.remove('hidden');
+                document.getElementById('audioTranscription').value = "[Audio recorded - type transcription or let AI analyze]";
+                stream.getTracks().forEach(track => track.stop());
+                clearInterval(recordingInterval);
+            };
+            
+            mediaRecorder.start();
+            recordingStartTime = Date.now();
+            btn.classList.add('recording');
+            btnText.innerText = 'Stop Recording';
+            
+            recordingInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('recordDuration').innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Microphone error:', error);
+            alert('Could not access microphone. Please grant permission.');
+        }
+    } else {
+        mediaRecorder.stop();
+        btn.classList.remove('recording');
+        btnText.innerText = 'Start Recording';
+    }
+}
+
+function clearAudio() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    capturedAudio = null;
+    audioChunks = [];
+    document.getElementById('audioPreview').classList.add('hidden');
+    document.getElementById('audioTranscription').classList.add('hidden');
+    document.getElementById('audioTranscription').value = '';
+    document.getElementById('recordBtn').classList.remove('recording');
+    document.getElementById('recordBtnText').innerText = 'Start Recording';
+}
+
+// AI Analysis
+async function analyzeWithAI() {
+    const obsText = document.getElementById('obsText').value.trim();
+    const imageDesc = document.getElementById('imageDescription').value.trim();
+    const audioTrans = document.getElementById('audioTranscription').value.trim();
+    
+    if (!obsText && !imageDesc && !audioTrans) {
+        alert('Please enter at least one form of observation');
+        return;
+    }
+    
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const originalText = analyzeBtn.innerHTML;
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = `<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...`;
+    
+    try {
+        const response = await fetch('/api/observations/analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                observationText: obsText,
+                imageDescription: imageDesc,
+                audioTranscription: audioTrans,
+                requirements: fieldworkRequirements
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            aiAnalysisResult = result.analysis;
+            displayAISuggestions(result.analysis);
+        } else {
+            alert('AI analysis failed: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to analyze: ' + error.message);
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = originalText;
+    }
+}
+
+function displayAISuggestions(analysis) {
+    document.getElementById('aiSuggestionsPanel').classList.remove('hidden');
+    
+    let content = '';
+    
+    if (analysis.matched_requirements && analysis.matched_requirements.length > 0) {
+        content += '<div class="mb-3"><h5 class="text-xs font-semibold text-green-800 mb-2">🎯 Matched Requirements:</h5>';
+        analysis.matched_requirements.forEach(match => {
+            const req = fieldworkRequirements.find(r => r.id === match.requirement_id);
+            if (req) {
+                const confidence = Math.round(match.confidence * 100);
+                content += `
+                    <div class="p-2 bg-white rounded border border-green-200 mb-2">
+                        <div><span class="text-xs font-semibold text-green-700">${req.id}</span>
+                        <span class="ml-2 text-xs text-green-600">${confidence}% match</span></div>
+                        <p class="text-xs text-slate-600 mt-1">${match.reasoning}</p>
+                    </div>
+                `;
+                if (analysis.matched_requirements[0].requirement_id === match.requirement_id) {
+                    currentRequirement = req;
+                }
+            }
+        });
+        content += '</div>';
+    }
+    
+    if (analysis.key_findings && analysis.key_findings.length > 0) {
+        content += '<div class="mb-2"><h5 class="text-xs font-semibold text-blue-800 mb-1">🔍 Key Findings:</h5>';
+        content += '<ul class="list-disc list-inside text-xs text-blue-700 space-y-0.5">';
+        analysis.key_findings.forEach(finding => content += `<li>${finding}</li>`);
+        content += '</ul></div>';
+    }
+    
+    document.getElementById('aiSuggestionsContent').innerHTML = content;
+    
+    if (analysis.compliance_status) {
+        const statusLabels = {
+            'compliant': '(AI: Compliant)',
+            'gap': '(AI: Gap)',
+            'non_compliant': '(AI: Non-Compliant)'
+        };
+        document.getElementById('aiSuggestedStatus').innerText = statusLabels[analysis.compliance_status] || '';
+    }
+    
+    if (analysis.severity) {
+        document.getElementById('aiSuggestedSeverity').innerText = `(AI: ${analysis.severity})`;
+    }
+    
+    if (analysis.analysis) {
+        document.getElementById('aiAnalysisSection').classList.remove('hidden');
+        document.getElementById('aiAnalysisText').innerText = analysis.analysis;
+    }
+    
+    if (analysis.recommendations && analysis.recommendations.length > 0) {
+        document.getElementById('aiRecommendationsSection').classList.remove('hidden');
+        let recsHTML = '';
+        analysis.recommendations.forEach(rec => recsHTML += `<li>${rec}</li>`);
+        document.getElementById('aiRecommendationsList').innerHTML = recsHTML;
+    }
+}
+
+function acceptAISuggestions() {
+    if (!aiAnalysisResult) return;
+    
+    if (aiAnalysisResult.compliance_status) {
+        const statusValue = aiAnalysisResult.compliance_status === 'non_compliant' ? 'non-compliant' : aiAnalysisResult.compliance_status;
+        document.querySelector(`input[name="obsStatus"][value="${statusValue}"]`).checked = true;
+    }
+    
+    if (aiAnalysisResult.severity) {
+        document.getElementById('obsSeverity').value = aiAnalysisResult.severity;
+    }
+    
+    alert('✓ AI suggestions accepted!');
+}
+
+function resetAIAnalysis() {
+    document.getElementById('aiSuggestionsPanel').classList.add('hidden');
+    document.getElementById('aiAnalysisSection').classList.add('hidden');
+    document.getElementById('aiRecommendationsSection').classList.add('hidden');
+    document.getElementById('aiSuggestedStatus').innerText = '';
+    document.getElementById('aiSuggestedSeverity').innerText = '';
+    aiAnalysisResult = null;
+}
+
+async function saveObservation() {
+    const obsText = document.getElementById('obsText').value.trim();
+    const location = document.getElementById('obsLocation').value.trim();
+    const interviewed = document.getElementById('obsInterviewed').value.trim();
+    const status = document.querySelector('input[name="obsStatus"]:checked').value;
+    const severity = document.getElementById('obsSeverity').value;
+    
+    if (obsText.length < 50) {
+        alert('Observation text must be at least 50 characters');
+        return;
+    }
+    
+    if (!currentRequirement) {
+        alert('No requirement matched. Please run AI analysis first.');
+        return;
+    }
+    
+    const observationData = {
+        linkedRequirement: currentRequirement,
+        observationText: obsText,
+        complianceStatus: status,
+        severity: status === 'compliant' ? 'minor' : severity,
+        category: currentRequirement.category,
+        location: location,
+        interviewed: interviewed,
+        evidence: [],
+        aiAnalysis: aiAnalysisResult
+    };
+    
+    try {
+        const response = await fetch('/api/observations', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(observationData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            fieldworkObservations.push(result.observation);
+            displayFieldworkRequirements();
+            updateFieldworkStats();
+            viewRequirementDetail(currentRequirement);
+            alert('✓ Observation saved successfully!');
+        } else {
+            alert('Failed to save: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error saving: ' + error.message);
+    }
+}
+
+function cancelObservation() {
+    document.getElementById('obsFormState').classList.add('hidden');
+    document.getElementById('obsEmptyState').classList.remove('hidden');
+    currentRequirement = null;
+}
+
+async function loadFieldworkObservations() {
+    try {
+        const response = await fetch('/api/observations');
+        const result = await response.json();
+        if (result.success) {
+            fieldworkObservations = result.observations;
+            updateFieldworkStats();
+        }
+    } catch (error) {
+        console.error('Error loading observations:', error);
+    }
+}
+
+function updateFieldworkStats() {
+    document.getElementById('reqCountFieldwork').innerText = fieldworkRequirements.length;
+    document.getElementById('obsCountFieldwork').innerText = fieldworkObservations.length;
+    
+    const gaps = fieldworkObservations.filter(obs => 
+        obs.complianceStatus === 'gap' || obs.complianceStatus === 'non-compliant'
+    ).length;
+    document.getElementById('gapCountFieldwork').innerText = gaps;
+}
+
+function filterFieldworkRequirements(level) {
+    document.querySelectorAll('.filter-fieldwork-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-700', 'text-white');
+        btn.classList.add('bg-slate-200', 'text-slate-700');
+    });
+    event.target.classList.add('bg-slate-700', 'text-white');
+    event.target.classList.remove('bg-slate-200', 'text-slate-700');
+    displayFieldworkRequirements();
+}
+
+function searchFieldworkRequirements() {
+    displayFieldworkRequirements();
+}
+
+// Initialize on tab switch
+function initializeFieldwork() {
+    loadFieldworkRequirements();
+}
+</script>
+
+<!-- STEP 4: UPDATE the switchTab function to initialize fieldwork -->
+<!-- Find the switchTab function and add this inside the if block for fieldwork: -->
+<!--
+function switchTab(tabName) {
+    // ... existing code ...
+    
+    if (tabName === 'fieldwork') {
+        initializeFieldwork();  // ADD THIS LINE
+    }
+}
+-->
+
